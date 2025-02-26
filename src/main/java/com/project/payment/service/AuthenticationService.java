@@ -60,9 +60,7 @@ public class AuthenticationService {
 
     @Transactional
     public RegisterUserRes registerUser(final RegisterReq request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new BadRequestException("User already exists");
-        }
+        checkExists(request.getUsername(), "User");
 
         String virtualAccount = accountService.generateUserVirtualAccount("2");
 
@@ -73,15 +71,20 @@ public class AuthenticationService {
 
     @Transactional
     public RegisterMerchantRes registerMerchant(final RegisterReq request) {
-        if (merchantRepository.existsByUsername(request.getUsername())) {
-            throw new BadRequestException("Merchant already exists");
-        }
+        checkExists(request.getUsername(), "Merchant");
 
         String virtualAccount = accountService.generateMerchantVirtualAccount("3");
 
         final var newMerchant = createMerchant(request, virtualAccount);
         final var savedMerchant = merchantRepository.save(newMerchant);
         return new RegisterMerchantRes(modelMapper.map(savedMerchant, MerchantRes.class));
+    }
+
+    private void checkExists(String username, String type){
+        if (merchantRepository.existsByUsername(username) ||
+                userRepository.existsByUsername(username) ) {
+            throw new BadRequestException(type + " already exists, Kindly change username");
+        }
     }
 
     private User createUser(RegisterReq request, String virtualAccount) {
