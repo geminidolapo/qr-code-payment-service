@@ -15,6 +15,7 @@ public interface MerchantRepository extends JpaRepository<Merchant, Long> {
   @Query("SELECT m FROM Merchant m WHERE m.id = :merchantId")
   Optional<Merchant> findByMerchantId(String merchantId);
 
+  @EntityGraph(attributePaths = {"roles"})
   @Query("SELECT a FROM Merchant a WHERE a.username = :username")
   @QueryHints(@QueryHint(name = "org.hibernate.cacheable", value = "true"))
   Optional<Merchant> findByUsername(String username);

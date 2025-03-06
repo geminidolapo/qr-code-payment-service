@@ -15,6 +15,7 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT m FROM User m WHERE m.username = :userName")
     Optional<User> findByUsernameWithLock(String userName);
 
+    @EntityGraph(attributePaths = {"roles"})
     @Query("SELECT a FROM User a WHERE a.username = :username")
     @QueryHints(@QueryHint(name = "org.hibernate.cacheable", value = "true"))
     Optional<User> findByUsername(String userName);
