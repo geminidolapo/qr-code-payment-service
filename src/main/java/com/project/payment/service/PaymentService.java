@@ -15,7 +15,7 @@ import com.project.payment.exception.AccountException;
 import com.project.payment.exception.UnauthorizedException;
 import com.project.payment.exception.UserNotFoundException;
 import com.project.payment.util.DateUtil;
-import com.project.payment.util.JwtUtil;
+import com.project.payment.security.JwtUtil;
 import com.project.payment.util.RandomUtil;
 import com.project.payment.util.StringUtil;
 import jakarta.transaction.Transactional;

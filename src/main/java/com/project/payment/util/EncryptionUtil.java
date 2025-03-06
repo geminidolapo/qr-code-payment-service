@@ -10,6 +10,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 import java.security.SecureRandom;
+import java.util.Arrays;
 import java.util.Base64;
 
 @Slf4j
@@ -22,26 +23,14 @@ public class EncryptionUtil {
 
     public String encryptData(String data) {
         try {
-            byte[] secretKeyBytes = Base64.getDecoder().decode(externalRequestProperties.getSecretKey());
-
-            if (secretKeyBytes.length != 16 && secretKeyBytes.length != 24 && secretKeyBytes.length != 32) {
-                throw new IllegalArgumentException("Invalid AES key length: " + secretKeyBytes.length + " bytes. Expected 16, 24, or 32 bytes.");
-            }
-
-            SecretKeySpec secretKey = new SecretKeySpec(secretKeyBytes, "AES");
-
-            Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
-            byte[] iv = generateIV();
-            cipher.init(Cipher.ENCRYPT_MODE, secretKey, new IvParameterSpec(iv));
+            SecretKeySpec secretKey = getSecretKey();
+            Cipher cipher = initCipher(Cipher.ENCRYPT_MODE, secretKey, null);
+            byte[] iv = cipher.getIV();
 
             byte[] encryptedBytes = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
 
             // Combine IV and encrypted data
-            byte[] combined = new byte[iv.length + encryptedBytes.length];
-            System.arraycopy(iv, 0, combined, 0, iv.length);
-            System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
-
-            return Base64.getEncoder().encodeToString(combined);
+            return encodeWithIV(iv, encryptedBytes);
         } catch (Exception e) {
             log.error("Encryption failed for data: {}", data, e);
             throw new QrCodeGenerationException("Encryption error");
@@ -50,29 +39,52 @@ public class EncryptionUtil {
 
     public String decryptData(String encryptedData) {
         try {
-            byte[] secretKeyBytes = Base64.getDecoder().decode(externalRequestProperties.getSecretKey());
-
-            if (secretKeyBytes.length != 16 && secretKeyBytes.length != 24 && secretKeyBytes.length != 32) {
-                throw new IllegalArgumentException("Invalid AES key length: " + secretKeyBytes.length + " bytes.");
-            }
-
-            SecretKeySpec secretKey = new SecretKeySpec(secretKeyBytes, "AES");
-
+            SecretKeySpec secretKey = getSecretKey();
             byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
 
-            byte[] iv = new byte[16];
-            byte[] encryptedBytes = new byte[decodedBytes.length - 16];
-            System.arraycopy(decodedBytes, 0, iv, 0, 16);
-            System.arraycopy(decodedBytes, 16, encryptedBytes, 0, encryptedBytes.length);
+            byte[] iv = extractIV(decodedBytes);
+            byte[] encryptedBytes = extractEncryptedData(decodedBytes, iv.length);
 
-            Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
-            cipher.init(Cipher.DECRYPT_MODE, secretKey, new IvParameterSpec(iv));
-
+            Cipher cipher = initCipher(Cipher.DECRYPT_MODE, secretKey, iv);
             return new String(cipher.doFinal(encryptedBytes), StandardCharsets.UTF_8);
         } catch (Exception e) {
             log.error("Decryption failed for encrypted data: {}", encryptedData, e);
             throw new QrCodeGenerationException("Decryption error");
         }
+    }
+
+    private SecretKeySpec getSecretKey() {
+        byte[] secretKeyBytes = Base64.getDecoder().decode(externalRequestProperties.getSecretKey());
+
+        if (secretKeyBytes.length != 16 && secretKeyBytes.length != 24 && secretKeyBytes.length != 32) {
+            throw new IllegalArgumentException("Invalid AES key length: " + secretKeyBytes.length + " bytes.");
+        }
+
+        return new SecretKeySpec(secretKeyBytes, "AES");
+    }
+
+    private Cipher initCipher(int mode, SecretKeySpec secretKey, byte[] iv) throws Exception {
+        Cipher cipher = Cipher.getInstance(AES_TRANSFORMATION);
+        if (iv == null) {
+            iv = generateIV();
+        }
+        cipher.init(mode, secretKey, new IvParameterSpec(iv));
+        return cipher;
+    }
+
+    private byte[] extractIV(byte[] decodedBytes) {
+        return Arrays.copyOfRange(decodedBytes, 0, 16);
+    }
+
+    private byte[] extractEncryptedData(byte[] decodedBytes, int ivLength) {
+        return Arrays.copyOfRange(decodedBytes, ivLength, decodedBytes.length);
+    }
+
+    private String encodeWithIV(byte[] iv, byte[] encryptedBytes) {
+        byte[] combined = new byte[iv.length + encryptedBytes.length];
+        System.arraycopy(iv, 0, combined, 0, iv.length);
+        System.arraycopy(encryptedBytes, 0, combined, iv.length, encryptedBytes.length);
+        return Base64.getEncoder().encodeToString(combined);
     }
 
     private byte[] generateIV() {

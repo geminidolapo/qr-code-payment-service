@@ -13,7 +13,7 @@ import com.project.payment.dto.response.*;
 import com.project.payment.exception.BadRequestException;
 import com.project.payment.exception.UserNotFoundException;
 import com.project.payment.util.AccountUtil;
-import com.project.payment.util.JwtUtil;
+import com.project.payment.security.JwtUtil;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -60,7 +60,7 @@ public class AuthenticationService {
 
     @Transactional
     public RegisterUserRes registerUser(final RegisterReq request) {
-        checkExists(request.getUsername(), "User");
+        checkUserExists(request.getUsername(), "User");
 
         String virtualAccount = accountService.generateUserVirtualAccount("2");
 
@@ -71,7 +71,7 @@ public class AuthenticationService {
 
     @Transactional
     public RegisterMerchantRes registerMerchant(final RegisterReq request) {
-        checkExists(request.getUsername(), "Merchant");
+        checkUserExists(request.getUsername(), "Merchant");
 
         String virtualAccount = accountService.generateMerchantVirtualAccount("3");
 
@@ -80,7 +80,7 @@ public class AuthenticationService {
         return new RegisterMerchantRes(modelMapper.map(savedMerchant, MerchantRes.class));
     }
 
-    private void checkExists(String username, String type){
+    private void checkUserExists(String username, String type){
         if (merchantRepository.existsByUsername(username) ||
                 userRepository.existsByUsername(username) ) {
             throw new BadRequestException(type + " already exists, Kindly change username");

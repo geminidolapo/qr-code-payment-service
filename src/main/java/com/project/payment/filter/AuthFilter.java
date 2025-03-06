@@ -2,8 +2,8 @@ package com.project.payment.filter;
 
 import com.nimbusds.jose.shaded.gson.JsonObject;
 import com.project.payment.configuration.ExternalRequestProperties;
-import com.project.payment.util.JwtUtil;
-import com.project.payment.util.UserInfoUtil;
+import com.project.payment.security.JwtUtil;
+import com.project.payment.security.UserInfoUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;

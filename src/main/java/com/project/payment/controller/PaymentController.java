@@ -8,9 +8,8 @@ import com.project.payment.dto.response.ApiResponse;
 import com.project.payment.dto.response.PaymentRes;
 import com.project.payment.dto.response.QrCodeGeneratorRes;
 import com.project.payment.service.PaymentService;
-import com.project.payment.util.EncryptionUtil;
+import com.project.payment.util.ProcessPaymentUtil;
 import com.project.payment.util.QrCodeGenerator;
-import com.project.payment.util.RequestUtil;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -30,7 +29,7 @@ public class PaymentController {
 
     private final QrCodeGenerator qrCodeGenerator;
     private final PaymentService paymentService;
-    private final EncryptionUtil encryptionUtil;
+    private final ProcessPaymentUtil processPaymentUtil;
 
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/generate-qrcode")
@@ -41,19 +40,14 @@ public class PaymentController {
         return ResponseEntity.ok(ApiResponse.success(res));
     }
 
+    // create a util to handle
 
     @PreAuthorize("hasRole('USER')")
     @PostMapping("/process")
     public ResponseEntity<ApiResponse<PaymentRes>> processPayment(@Valid @RequestBody ProcessPaymentReq request){
-        log.info("encrypted payment request: {}", request);
+        log.info("processing payment request");
 
-        var data = encryptionUtil.decryptData(request.getEncryptedData());
-        log.info("decrypted payment request: {}", data);
-
-        final var payload = RequestUtil.getPaymentRequest(data);
-        log.info("decrypted payment request: {}", payload);
-
-        final var paymentResponse = paymentService.makePayment(payload);
+        final var paymentResponse = processPaymentUtil.processPayment(request);
         return ResponseEntity.ok(paymentResponse);
     }
 

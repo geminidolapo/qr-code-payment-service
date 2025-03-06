@@ -15,11 +15,12 @@ import java.util.Set;
 @RequiredArgsConstructor
 public class AccountUtil {
 
-    private static final String NUBAN = "373373373373";
-    private static final int MAX_ATTEMPTS = 1000;
+    private static final int MAX_ATTEMPTS = 10;
     private final MerchantRepository merchantRepository;
     private final UserRepository userRepository;
     private final Random random = new Random();
+    private static final int MIN_VALUE = 100_000_000;
+    private static final int MAX_VALUE = 900_000_000;
 
     public String generateMerchantVirtualAccount(String prefix) {
         log.info("Generating virtual account for merchant");
@@ -28,7 +29,7 @@ public class AccountUtil {
         int attempts = 0;
 
         while (attempts < MAX_ATTEMPTS) {
-            String vFid = prefix + (100_000_000 + random.nextInt(900_000_000));
+            String vFid = prefix + (MIN_VALUE + random.nextInt(MAX_VALUE));
 
             // Check cache before hitting the database
             if (!existingNumbers.contains(vFid) && !merchantRepository.existsByAccountNumber(vFid)) {
@@ -39,7 +40,7 @@ public class AccountUtil {
             attempts++;
         }
 
-        throw new AccountException("Failed to generate a unique virtual account after " + MAX_ATTEMPTS + " attempts");
+        throw new AccountException("Failed to generate a unique merchant virtual account after " + MAX_ATTEMPTS + " attempts");
     }
 
     public String generateUserVirtualAccount(String prefix) {
@@ -49,7 +50,7 @@ public class AccountUtil {
         int attempts = 0;
 
         while (attempts < MAX_ATTEMPTS) {
-            String vFid = prefix + (100_000_000 + random.nextInt(900_000_000));
+            String vFid = prefix + (MIN_VALUE + random.nextInt(MAX_VALUE));
 
             if (!existingNumbers.contains(vFid) && !userRepository.existsByAccountNumber(vFid)) {
                 log.info("Generated unique user virtual account: {}", vFid);

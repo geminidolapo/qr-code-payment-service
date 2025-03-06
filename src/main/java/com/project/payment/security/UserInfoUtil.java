@@ -1,4 +1,4 @@
-package com.project.payment.util;
+package com.project.payment.security;
 
 
 import com.project.payment.dao.repository.MerchantRepository;
@@ -25,8 +25,8 @@ public class UserInfoUtil implements UserDetailsService {
                 .map(AuthUser::new);
 
         final var merchantDetails = merchantRepository
-                        .findByUsername(username)
-                        .map(AuthMerchant::new);
+                .findByUsername(username)
+                .map(AuthMerchant::new);
 
         if(userDetails.isEmpty() && merchantDetails.isEmpty()){
             throw new UsernameNotFoundException("User not found: " + username);

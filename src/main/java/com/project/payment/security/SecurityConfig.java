@@ -1,12 +1,12 @@
-package com.project.payment.configuration;
+package com.project.payment.security;
 
 import com.nimbusds.jose.KeyLengthException;
 import com.nimbusds.jose.crypto.MACSigner;
 import com.nimbusds.jose.jwk.source.ImmutableSecret;
 import com.nimbusds.jose.jwk.source.JWKSource;
 import com.nimbusds.jose.proc.SecurityContext;
+import com.project.payment.configuration.ExternalRequestProperties;
 import com.project.payment.exception.GenericException;
-import com.project.payment.util.UserInfoUtil;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -98,7 +98,7 @@ public class SecurityConfig {
         var configuration = new CorsConfiguration();
 
         configuration.setAllowedOrigins(List.of("*"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
 //        configuration.setAllowCredentials(true);
         source.registerCorsConfiguration(authenticationProperties.getPathPrefix() + "/**", configuration);

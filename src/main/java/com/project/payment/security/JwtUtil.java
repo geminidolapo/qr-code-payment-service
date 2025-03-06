@@ -1,8 +1,9 @@
-package com.project.payment.util;
+package com.project.payment.security;
 
 
 import com.project.payment.configuration.ExternalRequestProperties;
 import com.project.payment.dao.entity.Merchant;
+import com.project.payment.dao.entity.Role;
 import com.project.payment.dao.entity.User;
 import com.project.payment.dto.request.AuthenticationReq;
 import com.project.payment.exception.UnauthorizedException;
@@ -14,6 +15,8 @@ import org.springframework.security.oauth2.jose.jws.MacAlgorithm;
 import org.springframework.security.oauth2.jwt.*;
 import org.springframework.stereotype.Component;
 import java.time.Instant;
+import java.util.List;
+import java.util.Set;
 
 @Slf4j
 @Component
@@ -24,60 +27,44 @@ public class JwtUtil {
     private final ExternalRequestProperties authenticationProperties;
 
     public String createToken(AuthenticationReq request, User user) {
-        final var nowInstant = Instant.now();
-
-        final var jwsHeader = JwsHeader.with(MacAlgorithm.HS256)
-                .build();
-
-        final var roles = user.getRoles().stream()
-                .map(role -> "ROLE_" + role.getName())
-                .toList();
-
-        final var claims = JwtClaimsSet.builder()
-                .issuer(this.authenticationProperties.getJwtIssuer())
-                .issuedAt(nowInstant)
-                .expiresAt(nowInstant.plusSeconds(this.authenticationProperties.getJwtExpiresAt()))
-                .subject(request.getUsername())
-                .claim("roles",roles)
-                .build();
-
-        return this.encoder.encode(JwtEncoderParameters.from(jwsHeader, claims))
-                .getTokenValue();
+        return generateToken(request.getUsername(), user.getRoles());
     }
 
     public String createToken(AuthenticationReq request, Merchant merchant) {
-        final var nowInstant = Instant.now();
+        return generateToken(request.getUsername(), merchant.getRoles());
+    }
 
-        final var jwsHeader = JwsHeader.with(MacAlgorithm.HS256)
-                .build();
+    private String generateToken(String username, Set<Role> roles) {
+        Instant nowInstant = Instant.now();
 
-        final var roles = merchant.getRoles().stream()
+        JwsHeader jwsHeader = JwsHeader.with(MacAlgorithm.HS256).build();
+
+        List<String> roleNames = roles.stream()
                 .map(role -> "ROLE_" + role.getName())
                 .toList();
 
-        final var claims = JwtClaimsSet.builder()
-                .issuer(this.authenticationProperties.getJwtIssuer())
+        JwtClaimsSet claims = JwtClaimsSet.builder()
+                .issuer(authenticationProperties.getJwtIssuer())
                 .issuedAt(nowInstant)
-                .expiresAt(nowInstant.plusSeconds(this.authenticationProperties.getJwtExpiresAt()))
-                .subject(request.getUsername())
-                .claim("roles",roles)
+                .expiresAt(nowInstant.plusSeconds(authenticationProperties.getJwtExpiresAt()))
+                .subject(username)
+                .claim("roles", roleNames)
                 .build();
 
-        return this.encoder.encode(JwtEncoderParameters.from(jwsHeader, claims))
-                .getTokenValue();
+        return encoder.encode(JwtEncoderParameters.from(jwsHeader, claims)).getTokenValue();
     }
 
     public String getUsernameFromToken(String token) {
-        Jwt jwt = this.jwtDecoder.decode(token);
-        return jwt.getSubject();
+        return decodeJwt(token).getSubject();
     }
 
     public boolean isTokenExpired(String token) {
-        Jwt jwt = this.jwtDecoder.decode(token);
-        Instant expirationTime = jwt.getExpiresAt();
+        Instant expirationTime = decodeJwt(token).getExpiresAt();
+        return expirationTime != null && expirationTime.isBefore(Instant.now());
+    }
 
-        assert expirationTime != null;
-        return expirationTime.isBefore(Instant.now());
+    private Jwt decodeJwt(String token) {
+        return jwtDecoder.decode(token);
     }
 
     public User getAuthenticatedUser() {
